@@ -2,14 +2,22 @@ export const SITE_PRODUCTION_URL = "https://maison-selena-taylor.com";
 
 /** Canonical origin for Open Graph / Twitter absolute URLs (no trailing slash). */
 export function getSiteUrl(): string {
-  const raw =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    (process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NODE_ENV === "development"
-        ? "http://localhost:3000"
-        : SITE_PRODUCTION_URL);
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (fromEnv) return normalizeSiteUrl(fromEnv);
 
+  if (process.env.NODE_ENV === "development") {
+    return "http://localhost:3000";
+  }
+
+  // Production must use the custom domain — not *.vercel.app (Telegram/social crawlers cannot use preview URLs).
+  if (process.env.VERCEL_ENV === "production" || !process.env.VERCEL_URL) {
+    return SITE_PRODUCTION_URL;
+  }
+
+  return normalizeSiteUrl(`https://${process.env.VERCEL_URL}`);
+}
+
+function normalizeSiteUrl(raw: string): string {
   const withoutTrailingSlash = raw.replace(/\/$/, "");
   if (/^https?:\/\//i.test(withoutTrailingSlash)) {
     return withoutTrailingSlash;
